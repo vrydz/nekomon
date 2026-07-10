@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: straycat
+      POSTGRES_PASSWORD: straycat
+      POSTGRES_DB: straycat
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U straycat -d straycat"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      args:
+        VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:-}
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://straycat:straycat@db:5432/straycat
+      DATABASE_SSL: "false"
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      REQUIRE_GPS: "true"
+      MAX_GPS_ACCURACY_M: "150"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

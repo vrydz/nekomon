@@ -1,0 +1,11 @@
+{
+  "name": "Stray Cat Hunter",
+  "description": "Gamifikasi berburu kucing liar dengan kamera & GPS",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
