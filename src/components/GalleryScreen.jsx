@@ -221,13 +221,16 @@ function CardDetail({ item, onClose, user, playSound, onDestroyComplete }) {
             </div>
             <div className="rarity-chip">{rarityLabels[rarity] || "Common"}</div>
           </div>
-          <div className="capture-card-art relative overflow-hidden">
+          <div className={`capture-card-art relative overflow-hidden art-style-${card.artStyle}`}>
             {item.imageThumb?.startsWith?.("data:image/") ? (
-              <img src={item.imageThumb} alt={card.title || "Kartu Nekomon"} className="capture-card-image anime-card-image" />
+              <img src={item.imageThumb} alt={card.title || "Kartu Nekomon"} className={`capture-card-image anime-card-image style-${card.artStyle} element-${card.element?.key}`} />
             ) : (
               <div className="gallery-placeholder"><Camera size={24} /></div>
             )}
             <div className="capture-card-aura" />
+            {card.artStyle && (
+              <div className={`style-overlay style-overlay-${card.artStyle}`} />
+            )}
             {card.element && (
               <div className="element-emblem z-20">
                 <ElementIcon size={24} />
@@ -559,13 +562,18 @@ export default function GalleryScreen({ catches, onBack, onHunt, user, setUser, 
           <div className="gallery-grid">
             {forgedCatches.map((item) => (
               <button key={item.id} className="gallery-card gallery-card-button" onClick={() => setSelectedCard(item)}>
-                {item.imageThumb?.startsWith?.("data:image/") ? (
-                  <img src={item.imageThumb} alt={item.card?.title || "Kartu Nekomon"} className="gallery-image anime-card-image" />
-                ) : (
-                  <div className="gallery-placeholder">
-                    <Camera size={24} />
-                  </div>
-                )}
+                <div className="relative aspect-square w-full overflow-hidden">
+                  {item.imageThumb?.startsWith?.("data:image/") ? (
+                    <img src={item.imageThumb} alt={item.card?.title || "Kartu Nekomon"} className={`gallery-image anime-card-image style-${item.card?.artStyle} element-${item.card?.element?.key}`} />
+                  ) : (
+                    <div className="gallery-placeholder">
+                      <Camera size={24} />
+                    </div>
+                  )}
+                  {item.card?.artStyle && (
+                    <div className={`style-overlay style-overlay-${item.card.artStyle}`} />
+                  )}
+                </div>
                 <div className="gallery-meta">
                   <div className="gallery-title">{item.card?.title || "Nekomon"}</div>
                   <div className="gallery-detail" style={{ textTransform: "uppercase", fontWeight: "700" }}>{rarityLabels[item.card?.rarity || "common"]}</div>
