@@ -3,7 +3,7 @@
 
 services:
   - type: web
-    name: stray-cat-hunter
+    name: nekomon
     runtime: docker
     plan: free
     healthCheckPath: /api/health
