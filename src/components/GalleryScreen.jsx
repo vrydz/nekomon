@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Camera, Download, Flame, MapPin, Mountain, Share2, Snowflake, Sparkles, Wind, X, Zap } from "lucide-react";
+import { Camera, Download, Flame, MapPin, Mountain, Share2, Snowflake, Sparkles, Trash2, Wind, X, Zap } from "lucide-react";
 import ScreenHeader from "./ScreenHeader";
-import { forgeNekomonCard } from "../services/api";
+import { forgeNekomonCard, destroyNekomonCard } from "../services/api";
 
 function formatDate(value) {
   if (!value) return "";
@@ -144,11 +144,25 @@ function DetailRow({ label, value }) {
   );
 }
 
-function CardDetail({ item, onClose }) {
+function CardDetail({ item, onClose, user, playSound, onDestroyComplete }) {
   const [message, setMessage] = useState("");
+  const [confirmDestroy, setConfirmDestroy] = useState(false);
+  const [destroying, setDestroying] = useState(false);
+  const [error, setError] = useState("");
+
   const card = item.card || {};
   const rarity = card.rarity || "common";
   const ElementIcon = elementIcons[card.element?.key] || Sparkles;
+
+  const rarityPoints = {
+    common: 10,
+    rare: 15,
+    epic: 20,
+    legend: 30,
+    legendary: 30,
+    ultimate: 50,
+  };
+  const refundValue = rarityPoints[rarity] || 10;
 
   const downloadCard = async () => {
     const blob = await renderCardPng(item);
@@ -170,6 +184,25 @@ function CardDetail({ item, onClose }) {
     } else {
       await downloadCard();
       setMessage("Browser belum mendukung share langsung. Kartu sudah diunduh untuk dibagikan manual.");
+    }
+  };
+
+  const handleDestroy = async () => {
+    setDestroying(true);
+    setError("");
+    playSound?.("click");
+    try {
+      const result = await destroyNekomonCard({
+        catchId: item.id,
+        userId: user.id,
+      });
+      playSound?.("success");
+      onDestroyComplete(result);
+    } catch (err) {
+      setError(err.message || "Gagal menghancurkan kartu.");
+      playSound?.("fail");
+    } finally {
+      setDestroying(false);
     }
   };
 
@@ -231,6 +264,36 @@ function CardDetail({ item, onClose }) {
           <button className="secondary-button detail-share-button" onClick={shareCard}>
             <Share2 size={18} /> Share to Social Media
           </button>
+          
+          {confirmDestroy ? (
+            <div className="destroy-confirm-panel">
+              <p className="destroy-confirm-text">
+                Hancurkan kartu ini? Kamu akan mendapatkan kembali <strong>{refundValue} Poin</strong>. Kartu anime akan dihapus, dan kucing ini akan kembali menjadi foto biasa.
+              </p>
+              {error && <div className="toast-box" style={{ background: "#fee2e2", color: "#b91c1c", marginTop: "4px" }}>{error}</div>}
+              <div className="destroy-confirm-buttons">
+                <button
+                  className="destroy-confirm-btn destroy-confirm-yes"
+                  onClick={handleDestroy}
+                  disabled={destroying}
+                >
+                  {destroying ? "Menghancurkan..." : "Ya, Hancurkan"}
+                </button>
+                <button
+                  className="destroy-confirm-btn destroy-confirm-no"
+                  onClick={() => setConfirmDestroy(false)}
+                  disabled={destroying}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="destroy-button" onClick={() => setConfirmDestroy(true)}>
+              <Trash2 size={16} /> Destroy Card (+{refundValue} Poin)
+            </button>
+          )}
+
           {message && <div className="toast-box">{message}</div>}
         </div>
       </div>
@@ -532,6 +595,20 @@ export default function GalleryScreen({ catches, onBack, onHunt, user, setUser, 
         <CardDetail
           item={selectedCard}
           onClose={() => setSelectedCard(null)}
+          user={user}
+          playSound={playSound}
+          onDestroyComplete={(result) => {
+            if (setUser) {
+              setUser(u => ({ ...u, points: result.points }));
+            }
+            if (setCatLog) {
+              setCatLog(log => log.map(item => item.id === result.catch_.id ? result.catch_ : item));
+            }
+            if (refreshLeaderboard) {
+              refreshLeaderboard();
+            }
+            setSelectedCard(null);
+          }}
         />
       )}
 

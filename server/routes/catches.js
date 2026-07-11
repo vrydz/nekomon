@@ -297,4 +297,51 @@ router.post("/:catchId/forge", async (req, res) => {
   }
 });
 
+router.post("/:catchId/destroy", async (req, res) => {
+  try {
+    const { userId } = req.body || {};
+    if (!userId) return res.status(400).json({ message: "User wajib diisi." });
+
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ message: "User tidak ditemukan." });
+
+    const catches = await getUserCatches(userId);
+    const catchRecord = catches.find((c) => c.id === req.params.catchId);
+    if (!catchRecord) return res.status(404).json({ message: "Foto kucing tidak ditemukan." });
+    if (!catchRecord.card) {
+      return res.status(400).json({ message: "Kartu Nekomon belum ditempa untuk foto ini." });
+    }
+
+    const rarity = String(catchRecord.card.rarity || "common").toLowerCase();
+    const RARITY_POINTS = {
+      common: 10,
+      rare: 15,
+      epic: 20,
+      legend: 30,
+      legendary: 30,
+      ultimate: 50,
+    };
+    const refundPoints = RARITY_POINTS[rarity] || 10;
+
+    const originalImage = catchRecord.imageOriginal || catchRecord.imageThumb;
+
+    // Reset card to null and restore imageThumb to original photo
+    const updatedCatch = await updateCatch(catchRecord.id, {
+      card: null,
+      imageThumb: originalImage,
+    });
+
+    const updatedUser = await updateUser(userId, { points: Number(user.points) + refundPoints });
+
+    res.json({
+      points: updatedUser.points,
+      catch_: updatedCatch,
+      refundPoints,
+      message: `Kartu berhasil dihancurkan! Kamu mendapatkan kembali ${refundPoints} Poin.`,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Proses penghancuran kartu gagal." });
+  }
+});
+
 export default router;

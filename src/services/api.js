@@ -123,3 +123,13 @@ export async function forgeNekomonCard({ catchId, userId, artStyle, element }) {
   if (!res.ok) await parseError(res, "Konversi kartu gagal.");
   return res.json();
 }
+
+export async function destroyNekomonCard({ catchId, userId }) {
+  const res = await fetch(`/api/catches/${catchId}/destroy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getHeaders() },
+    body: JSON.stringify({ userId }),
+  });
+  if (!res.ok) await parseError(res, "Penghancuran kartu gagal.");
+  return res.json();
+}
