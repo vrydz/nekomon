@@ -201,15 +201,16 @@ export async function analyzeWithGemini(imageData) {
 
   const response = await ai.models.generateContent({
     model: "gemini-3.5-flash",
-    contents: [
-      {
-        inlineData: {
-          mimeType,
-          data: base64,
+    contents: {
+      parts: [
+        {
+          inlineData: {
+            mimeType,
+            data: base64,
+          },
         },
-      },
-      {
-        text: `Kamu adalah analis kucing liar untuk game Stray Cat Hunter.
+        {
+          text: `Kamu adalah analis kucing liar untuk game Stray Cat Hunter.
 Analisis foto ini. Apakah ini kucing?
 Balas HANYA JSON valid dengan schema berikut (gunakan Bahasa Indonesia):
 {
@@ -220,8 +221,9 @@ Balas HANYA JSON valid dengan schema berikut (gunakan Bahasa Indonesia):
   "condition": string (kondisi fisik singkat),
   "confidence": number (0-100)
 }`,
-      },
-    ],
+        },
+      ],
+    },
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -245,14 +247,15 @@ Balas HANYA JSON valid dengan schema berikut (gunakan Bahasa Indonesia):
 }
 
 export async function analyzeImage(imageData) {
-  const provider = process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini" : "mock");
+  const provider = process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini" : (process.env.OPENAI_API_KEY ? "openai" : "mock"));
   if (provider === "gemini") return analyzeWithGemini(imageData);
   if (provider === "openai") return analyzeWithOpenAI(imageData);
   return withCardDetails(mockAnalyze(imageData), seededRandom(imageData.slice(0, 200)));
 }
 
 export async function generateAnimeCardImage(imageData, prompt) {
-  const provider = process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini" : "mock");
+  const provider = process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini" : (process.env.OPENAI_API_KEY ? "openai" : "mock"));
+  
   if (provider === "gemini") {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
@@ -273,17 +276,24 @@ export async function generateAnimeCardImage(imageData, prompt) {
       // Gunakan gemini-3.1-flash-lite-image untuk mengedit/men-generate gambar anime
       const response = await ai.models.generateContent({
         model: "gemini-3.1-flash-lite-image",
-        contents: [
-          {
-            inlineData: {
-              mimeType,
-              data: base64,
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                mimeType,
+                data: base64,
+              },
             },
+            {
+              text: prompt,
+            },
+          ],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: "3:4",
           },
-          {
-            text: prompt,
-          },
-        ],
+        },
       });
 
       // Temukan bagian gambar dari respons
@@ -294,10 +304,57 @@ export async function generateAnimeCardImage(imageData, prompt) {
       }
       throw new Error("Tidak ada data gambar dalam respons Gemini.");
     } catch (err) {
-      console.error("Gemini image generation failed, falling back to mock:", err);
+      console.error("Gemini image generation failed:", err);
+      throw new Error(`Gagal mengubah foto kucing menjadi anime: ${err.message || "Pastikan API Key Anda aktif dan mendukung model gambar."}`);
     }
   }
 
-  // Fallback to original image as reference, since mock environment cannot generate actual AI images offline
+  if (provider === "openai") {
+    try {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) throw new Error("OPENAI_API_KEY belum diset.");
+
+      // Bersihkan prompt dari parameter Midjourney/Gemini seperti --ar 2:3
+      const cleanPrompt = prompt.replace(/--ar \d+:\d+/, "").trim();
+
+      const res = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: cleanPrompt,
+          n: 1,
+          size: "1024x1792", // Ukuran portrait (tegak) yang sangat cocok untuk kartu TCG
+          quality: "standard",
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`OpenAI DALL-E error: ${err}`);
+      }
+
+      const data = await res.json();
+      const imageUrl = data.data?.[0]?.url;
+      if (!imageUrl) {
+        throw new Error("Tidak ada URL gambar dalam respons OpenAI DALL-E.");
+      }
+
+      // Konversi image URL dari OpenAI (yang expired dalam 2 jam) ke base64 agar tersimpan permanen
+      const imgRes = await fetch(imageUrl);
+      if (!imgRes.ok) throw new Error("Gagal mengunduh gambar hasil generasi DALL-E.");
+      const buffer = await imgRes.arrayBuffer();
+      const base64Image = Buffer.from(buffer).toString("base64");
+      return `data:image/png;base64,${base64Image}`;
+    } catch (err) {
+      console.error("OpenAI image generation failed:", err);
+      throw new Error(`Gagal mengubah foto kucing menjadi anime menggunakan OpenAI: ${err.message}`);
+    }
+  }
+
+  // Fallback ke gambar asli jika menggunakan mock provider
   return imageData;
 }
