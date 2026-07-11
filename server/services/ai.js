@@ -75,6 +75,9 @@ function buildCardDetails(analysis, rand = Math.random) {
   const title = titleParts[rarity][Math.floor(rand() * titleParts[rarity].length)];
   const power = Math.min(9999, Math.round((Number(analysis.confidence) || 70) * (rarity === "ultimate" ? 96 : rarity === "legend" ? 52 : rarity === "epic" ? 28 : rarity === "rare" ? 15 : 8)));
 
+  const catDescription = `${analysis.color || "kucing"} ${analysis.breed || ""}`.trim();
+  const dynamicPrompt = `An anime-style trading card game (TCG) illustration based on the provided reference photo of a ${catDescription || "kucing"}. Transform the cat into a cute and dynamic anime character with clean line art, vibrant cel-shaded coloring, and expressive glossy eyes. The background should be a colorful fantasy landscape that matches the cat's personality. Masterpiece, high quality, official digital card game artwork style. --ar 2:3`;
+
   return {
     rarity,
     label: tier.label,
@@ -83,7 +86,7 @@ function buildCardDetails(analysis, rand = Math.random) {
     skill: skillNames[rarity],
     power,
     lore: `${analysis.breed || "Kucing misterius"} dengan bulu ${analysis.color || "unik"} ini terdeteksi ${analysis.condition || "penuh energi"}. Aura kartunya masuk kelas ${tier.label}.`,
-    prompt: tier.prompt,
+    prompt: dynamicPrompt,
   };
 }
 

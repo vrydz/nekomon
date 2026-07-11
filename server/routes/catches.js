@@ -13,7 +13,7 @@ const ELEMENT_TYPES = {
     icon: "flame",
     statBoost: { attack: 34, defense: 8, speed: 14 },
     prompt:
-      "An aggressive Calico cat engulfed in blazing orange flames, sparks flying around, volcano background. Trading card game style, fire elemental aura, vibrant colors, anime illustration, highly detailed, 8k resolution. --ar 2:3",
+      "An anime-style trading card game (TCG) illustration based on the provided reference photo of a [Warna/Ras Kucing]. Transform the cat into a fierce anime character with glowing paws, surrounded by stylized anime fire bursts and swirling orange flames. Volcanic embers background, dynamic lighting. Masterpiece, high quality, official digital card game artwork style. --ar 2:3",
   },
   ice: {
     name: "Ice",
@@ -21,7 +21,7 @@ const ELEMENT_TYPES = {
     icon: "snowflake",
     statBoost: { attack: 18, defense: 32, speed: 8 },
     prompt:
-      "A majestic white Persian cat with glowing blue eyes, sitting on a throne of sharp ice crystals, snowy blizzard background. Trading card game style, frost and ice elemental aura, cool color palette, anime fantasy style, 8k resolution. --ar 2:3",
+      "An anime-style trading card game (TCG) illustration based on the provided reference photo of a [Warna/Ras Kucing]. Transform the cat into a majestic anime character with frosted fur and glowing blue eyes, surrounded by sharp floating ice crystals and a cold blizzard mist. Frozen tundra background. Masterpiece, high quality, official digital card game artwork style. --ar 2:3",
   },
   earth: {
     name: "Earth",
@@ -29,7 +29,7 @@ const ELEMENT_TYPES = {
     icon: "mountain",
     statBoost: { attack: 20, defense: 38, speed: 4 },
     prompt:
-      "A sturdy British Shorthair cat with armor plates made of rock and emerald crystals, standing on a cracked mountain peak. Trading card game style, earth elemental energy, rugged details, cinematic lighting, anime illustration. --ar 2:3",
+      "An anime-style trading card game (TCG) illustration based on the provided reference photo of a [Warna/Ras Kucing]. Transform the cat into a sturdy anime character wearing lightweight crystal armor, surrounded by floating rocks and green emerald energy shards. Mountain peak background. Masterpiece, high quality, official digital card game artwork style. --ar 2:3",
   },
   wind: {
     name: "Wind",
@@ -37,7 +37,7 @@ const ELEMENT_TYPES = {
     icon: "wind",
     statBoost: { attack: 16, defense: 10, speed: 38 },
     prompt:
-      "A sleek Siamese cat with ethereal wind wings, floating amidst swirling clouds and green leaves, sky background. Trading card game style, wind and aero elemental effects, dynamic motion blur, soft lighting, anime style. --ar 2:3",
+      "An anime-style trading card game (TCG) illustration based on the provided reference photo of a [Warna/Ras Kucing]. Transform the cat into a sleek anime character with ethereal wind wings, surrounded by swirling gale currents and floating green leaves. High sky and clouds background. Masterpiece, high quality, official digital card game artwork style. --ar 2:3",
   },
   thunder: {
     name: "Thunder",
@@ -45,7 +45,7 @@ const ELEMENT_TYPES = {
     icon: "zap",
     statBoost: { attack: 30, defense: 10, speed: 28 },
     prompt:
-      "A fierce black Bengal cat with electric yellow stripes, surrounded by crackling lightning bolts and dark storm clouds. Trading card game style, lightning and thunder elemental aura, high contrast, dramatic neon glow, anime action style. --ar 2:3",
+      "An anime-style trading card game (TCG) illustration based on the provided reference photo of a [Warna/Ras Kucing]. Transform the cat into a powerful anime character with electric sparks dancing on its fur, surrounded by jagged neon yellow lightning bolts. Dark stormy sky background, high contrast. Masterpiece, high quality, official digital card game artwork style. --ar 2:3",
   },
 };
 
@@ -74,6 +74,9 @@ function evolveCard(catchRecord, elementKey) {
   const base = catchRecord.card || {};
   const stats = base.battleStats || baseBattleStats(catchRecord);
 
+  const catDesc = `${catchRecord.color || "kucing"} ${catchRecord.breed || ""}`.trim();
+  const dynamicPrompt = element.prompt.replace("[Warna/Ras Kucing]", catDesc || "kucing");
+
   return {
     ...base,
     element: {
@@ -81,7 +84,7 @@ function evolveCard(catchRecord, elementKey) {
       name: element.name,
       label: element.label,
       icon: element.icon,
-      prompt: element.prompt,
+      prompt: dynamicPrompt,
     },
     battleStats: {
       attack: stats.attack + element.statBoost.attack,
@@ -90,7 +93,7 @@ function evolveCard(catchRecord, elementKey) {
     },
     power: (Number(base.power) || Number(catchRecord.confidence) * 10) + element.statBoost.attack * 8 + element.statBoost.defense * 6 + element.statBoost.speed * 7,
     lore: `Upgrade Berhasil! Nekomon kamu kini menguasai elemen ${element.name} dan siap bertarung!`,
-    elementPrompt: element.prompt,
+    elementPrompt: dynamicPrompt,
   };
 }
 
