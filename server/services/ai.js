@@ -317,35 +317,45 @@ export async function generateAnimeCardImage(imageData, prompt) {
       // Bersihkan prompt dari parameter Midjourney/Gemini seperti --ar 2:3
       const cleanPrompt = prompt.replace(/--ar \d+:\d+/, "").trim();
 
+      const model = process.env.OPENAI_IMAGE_MODEL || "dall-e-3";
+      // DALL-E 2 tidak mendukung 1024x1792, jadi kita sesuaikan default ukuran jika memakai dall-e-2
+      const defaultSize = model === "dall-e-2" ? "1024x1024" : "1024x1792";
+      const size = process.env.OPENAI_IMAGE_SIZE || defaultSize;
+      const quality = process.env.OPENAI_IMAGE_QUALITY || (model === "dall-e-3" ? "standard" : undefined);
+
+      const requestBody = {
+        model,
+        prompt: cleanPrompt,
+        n: 1,
+        size,
+      };
+      if (quality) {
+        requestBody.quality = quality;
+      }
+
       const res = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: "dall-e-3",
-          prompt: cleanPrompt,
-          n: 1,
-          size: "1024x1792", // Ukuran portrait (tegak) yang sangat cocok untuk kartu TCG
-          quality: "standard",
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!res.ok) {
         const err = await res.text();
-        throw new Error(`OpenAI DALL-E error: ${err}`);
+        throw new Error(`OpenAI DALL-E/Image error: ${err}`);
       }
 
       const data = await res.json();
       const imageUrl = data.data?.[0]?.url;
       if (!imageUrl) {
-        throw new Error("Tidak ada URL gambar dalam respons OpenAI DALL-E.");
+        throw new Error("Tidak ada URL gambar dalam respons OpenAI.");
       }
 
       // Konversi image URL dari OpenAI (yang expired dalam 2 jam) ke base64 agar tersimpan permanen
       const imgRes = await fetch(imageUrl);
-      if (!imgRes.ok) throw new Error("Gagal mengunduh gambar hasil generasi DALL-E.");
+      if (!imgRes.ok) throw new Error("Gagal mengunduh gambar hasil generasi OpenAI.");
       const buffer = await imgRes.arrayBuffer();
       const base64Image = Buffer.from(buffer).toString("base64");
       return `data:image/png;base64,${base64Image}`;
