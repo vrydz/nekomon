@@ -113,3 +113,13 @@ export async function fetchCatMap() {
   if (!res.ok) await parseError(res, "Gagal memuat peta.");
   return res.json();
 }
+
+export async function forgeNekomonCard({ catchId, userId, artStyle, element }) {
+  const res = await fetch(`/api/catches/${catchId}/forge`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getHeaders() },
+    body: JSON.stringify({ userId, artStyle, element }),
+  });
+  if (!res.ok) await parseError(res, "Konversi kartu gagal.");
+  return res.json();
+}

@@ -142,6 +142,7 @@ export default function ResultScreen({
   onEvolve,
   onDone,
   onRetry,
+  onViewGallery,
 }) {
   const selectedElement = analysis?.card?.element;
   const canEvolve = Boolean(analysis?.isCat && catchRecord?.id && !selectedElement && userPoints >= 50);
@@ -298,11 +299,31 @@ export default function ResultScreen({
 
       {!analyzing && analysis?.isCat && (
         <div className="success-box">
-          <CaptureCard captured={captured} analysis={analysis} />
+          <div className="result-image-wrap">
+            {captured?.dataUrl && (
+              <img
+                src={captured.dataUrl}
+                alt="Foto asli kucing terverifikasi"
+                className="result-image"
+                style={{ objectFit: "cover" }}
+              />
+            )}
+            {captured?.lat != null && (
+              <div className="gps-tag">
+                <MapPin size={12} /> {captured.lat.toFixed(5)}, {captured.lng.toFixed(5)}
+              </div>
+            )}
+          </div>
+          
           <div className="success-header">
             <Check size={20} color="#1F7A4D" />
             <span className="success-title">Kucing Terverifikasi! +10 Poin</span>
           </div>
+
+          <p className="empty-text" style={{ fontSize: "13px", textAlign: "center", marginBottom: "12px", background: "#f0fdf4", color: "#166534", padding: "12px", borderRadius: "10px", border: "1.5px solid #bbf7d0" }}>
+            ✓ Foto asli berhasil disimpan di <strong>Galeri Foto Asli</strong>! Pergi ke Galeri untuk menempa (forge) foto ini menjadi Kartu Nekomon Anime impianmu!
+          </p>
+
           {captured?.lat != null && (
             <DetailRow
               label="Lokasi"
@@ -311,47 +332,15 @@ export default function ResultScreen({
               }`}
             />
           )}
-          <DetailRow label="Jenis kartu" value={`${analysis.card?.rarity?.toUpperCase() || "COMMON"} (${analysis.card?.subtitle || "Mudah Ditemukan"})`} />
-          {selectedElement && <DetailRow label="Elemen" value={`${selectedElement.name} Type`} />}
           <DetailRow label="Warna bulu" value={analysis.color} />
           <DetailRow label="Perkiraan ras" value={analysis.breed} />
           <DetailRow label="Kondisi" value={analysis.condition} />
           <DetailRow label="Keyakinan AI" value={`${analysis.confidence}%`} />
 
-          {!selectedElement && (
-            <div className="evolve-panel mt-4 border-orange-500/30 bg-orange-50/10">
-              <button className="evolve-main-button" type="button" disabled={!canEvolve || evolving}>
-                <Sparkles size={17} className="animate-pulse text-amber-400" />
-                Evolve Type (50 Points)
-              </button>
-              <p className="evolve-message text-xs">
-                Apakah kamu ingin menambahkan elemen pada Nekomon ini? Membutuhkan 50 Point. Pilih Elemen:
-              </p>
-              <div className="element-grid">
-                {elementOptions.map(({ key, name, icon: Icon }) => (
-                  <button
-                    key={key}
-                    className={`element-button element-button-${key}`}
-                    type="button"
-                    onClick={() => onEvolve(key)}
-                    disabled={!canEvolve || evolving}
-                  >
-                    <Icon size={16} />
-                    {name}
-                  </button>
-                ))}
-              </div>
-              <div className="evolve-points text-orange-500 font-bold mt-1 text-xs">Point kamu: {userPoints}</div>
-            </div>
-          )}
-
-          {evolveMessage && (
-            <div className={`p-3 rounded-lg text-sm mt-3 font-semibold ${selectedElement ? "bg-emerald-950/20 text-emerald-400 border border-emerald-900/30" : "bg-red-950/20 text-red-400 border border-red-900/30"}`}>
-              {evolveMessage}
-            </div>
-          )}
-
-          <button className="hunt-button mt-4" onClick={onDone}>
+          <button className="hunt-button mt-4 animate-bounce" onClick={onViewGallery} style={{ width: "100%" }}>
+            <Sparkles size={18} /> Buka Galeri Foto Asli
+          </button>
+          <button className="secondary-button" onClick={onDone} style={{ width: "100%", marginTop: "8px" }}>
             Lanjut Berburu
           </button>
         </div>

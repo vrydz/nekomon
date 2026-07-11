@@ -2,6 +2,7 @@ import { Router } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { addCatch, getUser, updateUser, getUserCatches, updateCatch } from "../store/index.js";
 import { validateGps } from "../services/gps.js";
+import { buildCardDetails, generateAnimeCardImage } from "../services/ai.js";
 
 const router = Router();
 const POINTS_PER_CATCH = 10;
@@ -173,8 +174,9 @@ router.post("/", async (req, res) => {
       breed: analysis.breed,
       condition: analysis.condition,
       confidence: analysis.confidence,
-      card: analysis.card || null,
-      imageThumb: imageData,
+      card: null, // Mulai tanpa kartu (perlu di-forge dari Galeri Foto Asli)
+      imageThumb: imageData, // original photo
+      imageOriginal: imageData, // original photo
       createdAt: new Date().toISOString(),
     };
 
@@ -193,6 +195,105 @@ router.post("/", async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: err.message || "Gagal menyimpan tangkapan." });
+  }
+});
+
+router.post("/:catchId/forge", async (req, res) => {
+  try {
+    const { userId, artStyle, element } = req.body || {};
+    const elementKey = String(element || "").trim().toLowerCase();
+    const styleKey = String(artStyle || "").trim().toLowerCase(); // "ghibli" or "mappa"
+
+    if (!userId) return res.status(400).json({ message: "User wajib diisi." });
+    if (!ELEMENT_TYPES[elementKey]) {
+      return res.status(400).json({ message: "Elemen tidak valid. Pilih Fire, Ice, Earth, Wind, atau Thunder." });
+    }
+    if (styleKey !== "ghibli" && styleKey !== "mappa") {
+      return res.status(400).json({ message: "Art Style tidak valid. Pilih ghibli atau mappa." });
+    }
+
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ message: "User tidak ditemukan." });
+    if (Number(user.points) < 50) {
+      return res.status(402).json({ message: "Point belum cukup. Konversi kartu membutuhkan 50 Point." });
+    }
+
+    const catches = await getUserCatches(userId);
+    const catchRecord = catches.find((c) => c.id === req.params.catchId);
+    if (!catchRecord) return res.status(404).json({ message: "Foto kucing tidak ditemukan." });
+    if (catchRecord.card) {
+      return res.status(409).json({ message: "Foto ini sudah dikonversi menjadi kartu Nekomon." });
+    }
+
+    // 1. Ambil Base Card Details
+    const baseCard = buildCardDetails({
+      color: catchRecord.color,
+      breed: catchRecord.breed,
+      condition: catchRecord.condition,
+      confidence: catchRecord.confidence,
+    });
+
+    // 2. Tentukan Prompt Sesuai Gaya & Elemen
+    const elementDescs = {
+      fire: "blazing fire, swirling bright orange flames, and flying volcanic sparks",
+      ice: "sharp floating ice crystals, freezing blue frost aura, and cold winter mist",
+      earth: "glowing emerald rock armor, floating stone shards, and cracked ground energy",
+      wind: "ethereal wind vortex, swirling green aero currents, and floating leaves",
+      thunder: "crackling neon yellow lightning bolts, electric storm aura, and high-voltage sparks"
+    };
+
+    const ghibliTemplate = `Studio Ghibli anime style trading card game (TCG) illustration based on the provided reference photo of a cat. Transform the cat into a whimsical anime character with soft hand-drawn line art, warm cinematic lighting, and expressive, emotional glossy eyes. The character is infused with [PILIHAN ELEMEN] magic. Masterpiece, nostalgic anime aesthetic, lush watercolor textured background, official anime card artwork. --ar 2:3`;
+
+    const mappaTemplate = `MAPPA Studio anime style trading card game (TCG) action illustration based on the provided reference photo of a cat. Transform the cat into a powerful and dynamic anime character with sharp detailed line art, intense cinematic shading, and fierce glowing eyes. The character is actively casting dramatic [PILIHAN ELEMEN] magic with particle effects flying around. High contrast, dark fantasy anime aesthetic, epic battle background. --ar 2:3`;
+
+    const elementDesc = elementDescs[elementKey] || "";
+    const template = styleKey === "ghibli" ? ghibliTemplate : mappaTemplate;
+    const finalPrompt = template.replace("[PILIHAN ELEMEN]", elementDesc);
+
+    // 3. Generate Gambar dengan Gemini
+    // Gunakan imageOriginal atau imageThumb (keduanya sama-sama berisi foto asli saat ini)
+    const originalImage = catchRecord.imageOriginal || catchRecord.imageThumb;
+    const animeImageUrl = await generateAnimeCardImage(originalImage, finalPrompt);
+
+    // 4. Buat detail kartu yang telah di-boost
+    const elemObj = ELEMENT_TYPES[elementKey];
+    const baseStats = baseBattleStats(catchRecord);
+
+    const card = {
+      ...baseCard,
+      artStyle: styleKey,
+      element: {
+        key: elementKey,
+        name: elemObj.name,
+        label: elemObj.label,
+        icon: elemObj.icon,
+        prompt: finalPrompt,
+      },
+      battleStats: {
+        attack: baseStats.attack + elemObj.statBoost.attack,
+        defense: baseStats.defense + elemObj.statBoost.defense,
+        speed: baseStats.speed + elemObj.statBoost.speed,
+      },
+      power: (Number(baseCard.power) || Number(catchRecord.confidence) * 10) + elemObj.statBoost.attack * 8 + elemObj.statBoost.defense * 6 + elemObj.statBoost.speed * 7,
+      lore: `Berhasil ditempa dengan Gaya ${styleKey === "ghibli" ? "Studio Ghibli" : "MAPPA Studio"} dan menguasai elemen ${elemObj.name}!`,
+      imageAnime: animeImageUrl,
+    };
+
+    const updatedCatch = await updateCatch(catchRecord.id, {
+      card,
+      imageThumb: animeImageUrl, // Disimpan ke imageThumb agar langsung dirender di Gallery
+      imageOriginal: originalImage, // Tetap mempertahankan foto asli kucing
+    });
+
+    const updatedUser = await updateUser(userId, { points: Number(user.points) - 50 });
+
+    res.json({
+      points: updatedUser.points,
+      catch_: updatedCatch,
+      message: `Konversi Berhasil! Nekomon kamu berhasil ditempa menjadi kartu beranimasi elemen ${elemObj.name}!`,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Proses konversi gagal." });
   }
 });
 

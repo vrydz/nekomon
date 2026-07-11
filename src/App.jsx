@@ -414,23 +414,7 @@ export default function App() {
             sessionStorage.removeItem("nekomon-temp-photo");
             startCamera();
           }}
-          onSave={saveCapturedPhoto}
-        />
-      )}
-
-      {screen === "photoSaved" && (
-        <PhotoSavedPreviewScreen
-          captured={captured}
-          toast={toast}
-          onConvert={convertSavedPhoto}
-          onRetake={() => {
-            setCaptured(null);
-            setAnalysis(null);
-            setCurrentCatch(null);
-            setToast("");
-            sessionStorage.removeItem("nekomon-temp-photo");
-            startCamera();
-          }}
+          onSave={convertSavedPhoto}
         />
       )}
 
@@ -445,6 +429,10 @@ export default function App() {
           evolveMessage={evolveMessage}
           onEvolve={evolveCurrentCatch}
           onDone={reset}
+          onViewGallery={() => {
+            playSound("click");
+            loadUserCatches(user.id).then(() => setScreen("gallery"));
+          }}
           onRetry={() => {
             setCaptured(null);
             setAnalysis(null);
@@ -465,7 +453,16 @@ export default function App() {
       )}
 
       {screen === "gallery" && (
-        <GalleryScreen catches={catLog} onBack={() => setScreen("home")} onHunt={startCamera} />
+        <GalleryScreen
+          catches={catLog}
+          onBack={() => setScreen("home")}
+          onHunt={startCamera}
+          user={user}
+          setUser={setUser}
+          setCatLog={setCatLog}
+          refreshLeaderboard={refreshLeaderboard}
+          playSound={playSound}
+        />
       )}
 
       {screen === "board" && (

@@ -1208,3 +1208,153 @@ button:disabled {
 .evolve-success-modal {
   animation: evolve-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Custom CSS for Forge and Gallery Tabs */
+.gallery-tabs {
+  display: flex;
+  background: #f2e7d8;
+  border: 1.5px solid #e8dcc8;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.gallery-tab-btn {
+  flex: 1;
+  padding: 10px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: #8a7a66;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.gallery-tab-btn.active {
+  background: #fff;
+  color: #ff7a33;
+  box-shadow: 0 2px 4px rgba(43, 33, 24, 0.08);
+}
+
+/* Forge Options */
+.forge-modal {
+  background: #fff8f0;
+  border-radius: 20px;
+  border: 2px solid #e8dcc8;
+  padding: 22px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 10px 25px rgba(43, 33, 24, 0.15);
+}
+
+.forge-title {
+  font-weight: 800;
+  font-size: 20px;
+  color: #2b2118;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.forge-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #5f5244;
+  margin: 14px 0 6px;
+}
+
+.style-options {
+  display: flex;
+  gap: 10px;
+}
+
+.style-option-card {
+  flex: 1;
+  background: #fff;
+  border: 1.5px solid #e8dcc8;
+  border-radius: 12px;
+  padding: 12px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.style-option-card.selected {
+  border-color: #ff7a33;
+  background: #fff3eb;
+  box-shadow: 0 0 0 3px rgba(255, 122, 51, 0.16);
+}
+
+.style-option-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #2b2118;
+}
+
+.style-option-desc {
+  font-size: 11px;
+  color: #8a7a66;
+  margin-top: 4px;
+}
+
+.element-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.element-option-card {
+  background: #fff;
+  border: 1.5px solid #e8dcc8;
+  border-radius: 12px;
+  padding: 10px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.element-option-card.selected {
+  border-color: #ff7a33;
+  background: #fff3eb;
+  box-shadow: 0 0 0 3px rgba(255, 122, 51, 0.16);
+}
+
+.element-option-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2b2118;
+}
+
+/* Forge Loading Animation */
+.forge-loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.forge-loader {
+  width: 60px;
+  height: 60px;
+  border: 5px solid #e8dcc8;
+  border-top-color: #ff7a33;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.forge-loading-text {
+  font-weight: 700;
+  color: #ff7a33;
+  font-size: 15px;
+}

@@ -55,7 +55,7 @@ function pickRarity(confidence, rand = Math.random) {
   return "common";
 }
 
-function buildCardDetails(analysis, rand = Math.random) {
+export function buildCardDetails(analysis, rand = Math.random) {
   const rarity = pickRarity(Number(analysis.confidence) || 0, rand);
   const tier = CARD_TIERS[rarity];
   const titleParts = {
@@ -249,4 +249,55 @@ export async function analyzeImage(imageData) {
   if (provider === "gemini") return analyzeWithGemini(imageData);
   if (provider === "openai") return analyzeWithOpenAI(imageData);
   return withCardDetails(mockAnalyze(imageData), seededRandom(imageData.slice(0, 200)));
+}
+
+export async function generateAnimeCardImage(imageData, prompt) {
+  const provider = process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini" : "mock");
+  if (provider === "gemini") {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) throw new Error("GEMINI_API_KEY belum diset.");
+
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build",
+          },
+        },
+      });
+
+      const mimeType = imageData.match(/^data:(image\/\w+);base64,/)?.[1] || "image/jpeg";
+      const base64 = imageData.replace(/^data:image\/\w+;base64,/, "");
+
+      // Gunakan gemini-3.1-flash-lite-image untuk mengedit/men-generate gambar anime
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-lite-image",
+        contents: [
+          {
+            inlineData: {
+              mimeType,
+              data: base64,
+            },
+          },
+          {
+            text: prompt,
+          },
+        ],
+      });
+
+      // Temukan bagian gambar dari respons
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData?.data) {
+          return `data:image/png;base64,${part.inlineData.data}`;
+        }
+      }
+      throw new Error("Tidak ada data gambar dalam respons Gemini.");
+    } catch (err) {
+      console.error("Gemini image generation failed, falling back to mock:", err);
+    }
+  }
+
+  // Fallback to original image as reference, since mock environment cannot generate actual AI images offline
+  return imageData;
 }
