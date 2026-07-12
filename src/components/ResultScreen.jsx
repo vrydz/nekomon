@@ -45,6 +45,7 @@ export function CaptureCard({ captured, analysis }) {
   const fallback = rarityFallback[rarity] || rarityFallback.common;
   const card = { ...fallback, ...analysis.card };
   const elementKey = card.element?.key || "neutral";
+  const artStyle = card.artStyle || "";
 
   return (
     <section className={`capture-card capture-card-${rarity} capture-card-element-${elementKey}`} aria-label={`Kartu ${card.label}`}>
@@ -60,16 +61,20 @@ export function CaptureCard({ captured, analysis }) {
         </div>
       </div>
 
-      <div className="capture-card-art relative overflow-hidden">
-        {captured?.dataUrl && (
+      <div className={`capture-card-art relative overflow-hidden art-style-${artStyle}`}>
+        {(card.imageAnime || captured?.dataUrl) && (
           <img
-            src={captured.dataUrl}
+            src={card.imageAnime || captured.dataUrl}
             alt="Artwork kartu kucing"
-            className={`capture-card-image ${card.element ? "anime-card-image" : ""}`}
+            className={`capture-card-image ${card.element ? "anime-card-image" : ""} style-${artStyle} element-${elementKey}`}
           />
         )}
         <div className="capture-card-aura" />
         
+        {artStyle && (
+          <div className={`style-overlay style-overlay-${artStyle}`} />
+        )}
+
         {card.element && (
           <div className="element-emblem z-20" title={card.element.label}>
             <ElementIcon element={card.element} size={24} />
@@ -267,7 +272,7 @@ export default function ResultScreen({
 
         setSavingToast("💾 Kartu Nekomón versi animasi telah otomatis disimpan ke galeri perangkatmu!");
       };
-      img.src = captured?.dataUrl || "";
+      img.src = analysis?.card?.imageAnime || captured?.dataUrl || "";
     } catch (err) {
       console.error("Gagal mengekspor kartu:", err);
       setSavingToast("⚠️ Gagal mengekspor kartu, namun data Anda tetap aman.");

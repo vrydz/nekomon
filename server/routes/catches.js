@@ -259,8 +259,19 @@ router.post("/:catchId/forge", async (req, res) => {
     const elemObj = ELEMENT_TYPES[elementKey];
     const baseStats = baseBattleStats(catchRecord);
 
+    const elementPrefixes = {
+      fire: "PYRO",
+      ice: "CRYO",
+      earth: "GEO",
+      wind: "AERO",
+      thunder: "ELECTRO"
+    };
+    const prefix = elementPrefixes[elementKey] || elementKey.toUpperCase();
+    const dynamicLabel = `${prefix}-${(baseCard.rarity || "common").toUpperCase()}`;
+
     const card = {
       ...baseCard,
+      label: dynamicLabel,
       artStyle: styleKey,
       element: {
         key: elementKey,
