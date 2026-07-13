@@ -70,13 +70,18 @@ function baseBattleStats(catchRecord) {
   };
 }
 
-function evolveCard(catchRecord, elementKey) {
+async function evolveCard(catchRecord, elementKey) {
   const element = ELEMENT_TYPES[elementKey];
   const base = catchRecord.card || {};
   const stats = base.battleStats || baseBattleStats(catchRecord);
 
   const catDesc = `${catchRecord.color || "kucing"} ${catchRecord.breed || ""}`.trim();
   const dynamicPrompt = element.prompt.replace("[Warna/Ras Kucing]", catDesc || "kucing");
+
+  // Gambar ulang artwork kartu dengan elemen barunya (bukan sekadar update stats),
+  // pakai foto asli sebagai referensi pose/warna/ciri fisik saja.
+  const originalImage = catchRecord.imageOriginal || catchRecord.imageThumb;
+  const animeImageUrl = await generateAnimeCardImage(originalImage, dynamicPrompt);
 
   return {
     ...base,
@@ -95,6 +100,7 @@ function evolveCard(catchRecord, elementKey) {
     power: (Number(base.power) || Number(catchRecord.confidence) * 10) + element.statBoost.attack * 8 + element.statBoost.defense * 6 + element.statBoost.speed * 7,
     lore: `Upgrade Berhasil! Nekomon kamu kini menguasai elemen ${element.name} dan siap bertarung!`,
     elementPrompt: dynamicPrompt,
+    imageAnime: animeImageUrl,
   };
 }
 
@@ -131,8 +137,11 @@ router.post("/:catchId/evolve", async (req, res) => {
       return res.status(409).json({ message: "Kartu ini sudah memiliki elemen." });
     }
 
-    const card = evolveCard(catchRecord, elementKey);
-    const updatedCatch = await updateCatch(catchRecord.id, { card });
+    const card = await evolveCard(catchRecord, elementKey);
+    const updatedCatch = await updateCatch(catchRecord.id, {
+      card,
+      imageThumb: card.imageAnime, // simpan artwork baru agar langsung dirender di Gallery
+    });
     const updatedUser = await updateUser(userId, { points: Number(user.points) - TYPE_UPGRADE_COST });
 
     res.json({
