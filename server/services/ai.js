@@ -273,9 +273,22 @@ export async function generateAnimeCardImage(imageData, prompt) {
       const mimeType = imageData.match(/^data:(image\/\w+);base64,/)?.[1] || "image/jpeg";
       const base64 = imageData.replace(/^data:image\/\w+;base64,/, "");
 
-      // Gunakan gemini-3.1-flash-lite-image untuk mengedit/men-generate gambar anime
+      // PENTING: "flash-lite-image" dioptimalkan untuk local edits cepat (ganti warna/background),
+      // BUKAN untuk restyle/redraw penuh — itulah kenapa hasilnya cenderung "foto asli + filter".
+      // "flash-image" (non-lite) diuji khusus untuk kapabilitas stylization & character editing,
+      // jadi jauh lebih tepat untuk transformasi foto -> ilustrasi anime penuh.
+      const imageModel = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image";
+
+      // Perkuat prompt agar model benar-benar meredraw ulang, bukan sekadar filter foto asli.
+      const antiFilterInstruction =
+        "PENTING: Jangan hanya menerapkan filter warna, efek, atau overlay ke foto asli. " +
+        "Gambar ulang (redraw) sepenuhnya kucing tersebut sebagai ilustrasi anime 2D buatan tangan dari nol — " +
+        "garis, shading, dan komposisi harus baru, bukan turunan piksel foto aslinya. " +
+        "Foto asli HANYA dipakai sebagai referensi pose, warna bulu, dan ciri fisik kucing, bukan sebagai dasar piksel gambar akhir.\n\n";
+      const fullPrompt = antiFilterInstruction + prompt;
+
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite-image",
+        model: imageModel,
         contents: {
           parts: [
             {
@@ -285,11 +298,12 @@ export async function generateAnimeCardImage(imageData, prompt) {
               },
             },
             {
-              text: prompt,
+              text: fullPrompt,
             },
           ],
         },
         config: {
+          temperature: 1,
           imageConfig: {
             aspectRatio: "3:4",
           },
